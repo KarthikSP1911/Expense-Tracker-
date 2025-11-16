@@ -16,16 +16,20 @@ const SignUpPage = () => {
 
 	const [signup, { loading }] = useMutation(SIGN_UP, {
 		refetchQueries: ["GetAuthenticatedUser"],
+		awaitRefetchQueries: true,
 	});
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		try {
-			await signup({
+			const result = await signup({
 				variables: {
 					input: signUpData,
 				},
 			});
+			if (result.data?.signUp) {
+				toast.success("Account created successfully!");
+			}
 		} catch (error) {
 			console.error("Error:", error);
 			toast.error(error.message);

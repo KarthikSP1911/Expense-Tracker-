@@ -3,7 +3,6 @@ const userTypeDef = `#graphql
     _id: ID!
     username: String!
     name: String!
-    password: String!
     profilePicture: String
     gender: String!
     transactions: [Transaction!]

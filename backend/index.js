@@ -38,16 +38,30 @@ const store = new MongoDBStore({
 	collection: "sessions",
 });
 
-store.on("error", (err) => console.log(err));
+store.on("error", (err) => console.log("Session store error:", err));
 
+// Apply CORS first
+app.use(
+	cors({
+		origin: ["http://localhost:3000", "http://localhost:3001"],
+		credentials: true,
+	})
+);
+
+// Apply express.json before session
+app.use(express.json());
+
+// Session middleware MUST come before passport
 app.use(
 	session({
 		secret: process.env.SESSION_SECRET,
-		resave: false, // this option specifies whether to save the session to the store on every request
-		saveUninitialized: false, // option specifies whether to save uninitialized sessions
+		resave: false,
+		saveUninitialized: false,
 		cookie: {
 			maxAge: 1000 * 60 * 60 * 24 * 7,
-			httpOnly: true, // this option prevents the Cross-Site Scripting (XSS) attacks
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 		},
 		store: store,
 	})
@@ -65,31 +79,52 @@ const server = new ApolloServer({
 // Ensure we wait for our server to start
 await server.start();
 
-// Set up our Express middleware to handle CORS, body parsing,
-// and our expressMiddleware function.
+// GraphQL endpoint
 app.use(
 	"/graphql",
-	cors({
-		origin: "http://localhost:3000",
-		credentials: true,
-	}),
-	express.json(),
-	// expressMiddleware accepts the same arguments:
-	// an Apollo Server instance and optional configuration options
 	expressMiddleware(server, {
-		context: async ({ req, res }) => buildContext({ req, res }),
+		context: async ({ req, res }) => {
+			// Build context with graphql-passport
+			const context = buildContext({ req, res });
+			// Ensure req.user is accessible
+			return {
+				...context,
+				req,
+				res,
+				user: req.user,
+			};
+		},
 	})
 );
 
-// npm run build will build your frontend app, and it will the optimized version of your app
+// Serve static files in production
 app.use(express.static(path.join(__dirname, "frontend/dist")));
 
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
 });
 
-// Modified server startup
-await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
-await connectDB();
+// Graceful server startup with error handling
+try {
+	await new Promise((resolve, reject) => {
+		httpServer.listen({ port: 4000 }, (err) => {
+			if (err) reject(err);
+			else resolve();
+		});
+	});
+	await connectDB();
+	console.log(`🚀 Server ready at http://localhost:4000/graphql`);
+} catch (error) {
+	console.error("Failed to start server:", error);
+	process.exit(1);
+}
 
-console.log(`🚀 Server ready at http://localhost:4000/graphql`);
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+	console.log("SIGTERM signal received: closing HTTP server");
+	await server.stop();
+	httpServer.close(() => {
+		console.log("HTTP server closed");
+		process.exit(0);
+	});
+});

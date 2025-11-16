@@ -13,6 +13,7 @@ const LoginPage = () => {
 
 	const [login, { loading }] = useMutation(LOGIN, {
 		refetchQueries: ["GetAuthenticatedUser"],
+		awaitRefetchQueries: true,
 	});
 
 	const handleChange = (e) => {
@@ -27,7 +28,10 @@ const LoginPage = () => {
 		e.preventDefault();
 		if (!loginData.username || !loginData.password) return toast.error("Please fill in all fields");
 		try {
-			await login({ variables: { input: loginData } });
+			const result = await login({ variables: { input: loginData } });
+			if (result.data?.login) {
+				toast.success("Login successful!");
+			}
 		} catch (error) {
 			console.error("Error logging in:", error);
 			toast.error(error.message);

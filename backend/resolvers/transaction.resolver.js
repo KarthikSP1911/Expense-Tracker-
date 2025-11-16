@@ -5,39 +5,40 @@ const transactionResolver = {
 	Query: {
 		transactions: async (_, __, context) => {
 			try {
-				if (!context.getUser()) throw new Error("Unauthorized");
-				const userId = await context.getUser()._id;
+				// Get user from context (set in backend/index.js)
+				const user = context.user || (await context.getUser());
+				if (!user) throw new Error("Unauthorized");
+				const userId = user._id;
 
 				const transactions = await Transaction.find({ userId });
 				return transactions;
 			} catch (err) {
 				console.error("Error getting transactions:", err);
-				throw new Error("Error getting transactions");
+				throw new Error(err.message || "Error getting transactions");
 			}
 		},
-		transaction: async (_, { transactionId }) => {
+		transaction: async (_, { transactionId }, context) => {
 			try {
+				const user = context.user || (await context.getUser());
+				if (!user) throw new Error("Unauthorized");
 				const transaction = await Transaction.findById(transactionId);
+				if (!transaction) throw new Error("Transaction not found");
+				if (transaction.userId.toString() !== user._id.toString()) {
+					throw new Error("Unauthorized");
+				}
 				return transaction;
 			} catch (err) {
 				console.error("Error getting transaction:", err);
-				throw new Error("Error getting transaction");
+				throw new Error(err.message || "Error getting transaction");
 			}
 		},
 		categoryStatistics: async (_, __, context) => {
-			if (!context.getUser()) throw new Error("Unauthorized");
+			const user = context.user || (await context.getUser());
+			if (!user) throw new Error("Unauthorized");
 
-			const userId = context.getUser()._id;
+			const userId = user._id;
 			const transactions = await Transaction.find({ userId });
 			const categoryMap = {};
-
-			// const transactions = [
-			// 	{ category: "expense", amount: 50 },
-			// 	{ category: "expense", amount: 75 },
-			// 	{ category: "investment", amount: 100 },
-			// 	{ category: "saving", amount: 30 },
-			// 	{ category: "saving", amount: 20 }
-			// ];
 
 			transactions.forEach((transaction) => {
 				if (!categoryMap[transaction.category]) {
@@ -46,44 +47,57 @@ const transactionResolver = {
 				categoryMap[transaction.category] += transaction.amount;
 			});
 
-			// categoryMap = { expense: 125, investment: 100, saving: 50 }
-
 			return Object.entries(categoryMap).map(([category, totalAmount]) => ({ category, totalAmount }));
-			// return [ { category: "expense", totalAmount: 125 }, { category: "investment", totalAmount: 100 }, { category: "saving", totalAmount: 50 } ]
 		},
 	},
 	Mutation: {
 		createTransaction: async (_, { input }, context) => {
 			try {
+				const user = context.user || (await context.getUser());
+				if (!user) throw new Error("Unauthorized");
 				const newTransaction = new Transaction({
 					...input,
-					userId: context.getUser()._id,
+					userId: user._id,
 				});
 				await newTransaction.save();
 				return newTransaction;
 			} catch (err) {
 				console.error("Error creating transaction:", err);
-				throw new Error("Error creating transaction");
+				throw new Error(err.message || "Error creating transaction");
 			}
 		},
-		updateTransaction: async (_, { input }) => {
+		updateTransaction: async (_, { input }, context) => {
 			try {
+				const user = context.user || (await context.getUser());
+				if (!user) throw new Error("Unauthorized");
+				const transaction = await Transaction.findById(input.transactionId);
+				if (!transaction) throw new Error("Transaction not found");
+				if (transaction.userId.toString() !== user._id.toString()) {
+					throw new Error("Unauthorized");
+				}
 				const updatedTransaction = await Transaction.findByIdAndUpdate(input.transactionId, input, {
 					new: true,
 				});
 				return updatedTransaction;
 			} catch (err) {
 				console.error("Error updating transaction:", err);
-				throw new Error("Error updating transaction");
+				throw new Error(err.message || "Error updating transaction");
 			}
 		},
-		deleteTransaction: async (_, { transactionId }) => {
+		deleteTransaction: async (_, { transactionId }, context) => {
 			try {
+				const user = context.user || (await context.getUser());
+				if (!user) throw new Error("Unauthorized");
+				const transaction = await Transaction.findById(transactionId);
+				if (!transaction) throw new Error("Transaction not found");
+				if (transaction.userId.toString() !== user._id.toString()) {
+					throw new Error("Unauthorized");
+				}
 				const deletedTransaction = await Transaction.findByIdAndDelete(transactionId);
 				return deletedTransaction;
 			} catch (err) {
 				console.error("Error deleting transaction:", err);
-				throw new Error("Error deleting transaction");
+				throw new Error(err.message || "Error deleting transaction");
 			}
 		},
 	},
