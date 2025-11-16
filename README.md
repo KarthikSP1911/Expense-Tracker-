@@ -54,48 +54,90 @@ The application provides secure authentication, real-time transaction management
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        A[React App] --> B[Apollo Client]
-        B --> C[React Router]
-        A --> D[Tailwind CSS]
-        A --> E[Chart.js]
+
+    %% ---------------- CLIENT LAYER ----------------
+    subgraph Client["🖥️ CLIENT LAYER"]
+        A1["<b>React App</b><br/>UI & Components"]
+        A2["<b>Apollo Client</b><br/>GraphQL Requests"]
+        A3["<b>React Router</b><br/>Routing"]
+        A4["<b>Tailwind CSS</b><br/>Styling"]
+        A5["<b>Chart.js</b><br/>Charts & Visuals"]
+
+        A1 --> A2
+        A2 --> A3
+        A1 --> A4
+        A1 --> A5
     end
-    
-    subgraph "API Layer"
-        F[Apollo Server] --> G[GraphQL Schema]
-        G --> H[Resolvers]
-        H --> I[User Resolver]
-        H --> J[Transaction Resolver]
+
+
+    %% ---------------- API LAYER ----------------
+    subgraph API["⚡ API LAYER"]
+        B1["<b>Apollo Server</b>"]
+        B2["<b>GraphQL Schema</b>"]
+        B3["<b>Resolvers</b>"]
+        B4["<b>User Resolver</b>"]
+        B5["<b>Transaction Resolver</b>"]
+
+        B1 --> B2 --> B3
+        B3 --> B4
+        B3 --> B5
     end
-    
-    subgraph "Authentication Layer"
-        K[Passport.js] --> L[Local Strategy]
-        K --> M[Session Store]
-        M --> N[MongoDB Sessions]
+
+
+    %% ---------------- AUTH LAYER ----------------
+    subgraph Auth["🔐 AUTHENTICATION"]
+        C1["<b>Passport.js</b>"]
+        C2["<b>Local Strategy</b>"]
+        C3["<b>Session Store</b>"]
+        C4["<b>MongoDB Sessions</b>"]
+
+        C1 --> C2
+        C1 --> C3 --> C4
     end
-    
-    subgraph "Data Layer"
-        O[Mongoose ODM] --> P[User Model]
-        O --> Q[Transaction Model]
-        P --> R[(MongoDB Atlas)]
-        Q --> R
+
+
+    %% ---------------- DATA LAYER ----------------
+    subgraph Data["💾 DATA LAYER"]
+        D1["<b>Mongoose ODM</b>"]
+        D2["<b>User Model</b>"]
+        D3["<b>Transaction Model</b>"]
+        D4["<b>MongoDB Atlas</b>"]
+
+        D1 --> D2 --> D4
+        D1 --> D3 --> D4
     end
-    
-    subgraph "Background Jobs"
-        S[Cron Jobs] --> T[Health Check]
+
+
+    %% ---------------- BACKGROUND JOBS ----------------
+    subgraph Jobs["⏰ BACKGROUND JOBS"]
+        E1["<b>Cron Jobs</b>"]
+        E2["<b>Health Check</b>"]
+
+        E1 --> E2
     end
-    
-    B -->|GraphQL Queries/Mutations| F
-    F --> K
-    K --> O
-    I --> P
-    J --> Q
-    
-    style A fill:#61DAFB
-    style F fill:#E10098
-    style K fill:#34E27A
-    style R fill:#47A248
-    style S fill:#FF6B6B
+
+
+    %% ---------------- CONNECTIONS ----------------
+    A2 -->|GraphQL Queries / Mutations| B1
+    B1 --> C1
+    C1 --> D1
+    B4 --> D2
+    B5 --> D3
+
+
+    %% ---------------- STYLES ----------------
+    classDef client fill:#4e79ff,stroke:#3a5ed8,color:#fff,rx:10,ry:10;
+    classDef api fill:#06d6a0,stroke:#05b689,color:#fff,rx:10,ry:10;
+    classDef auth fill:#ff5c8a,stroke:#e14b74,color:#fff,rx:10,ry:10;
+    classDef data fill:#ffa600,stroke:#e58f00,color:#fff,rx:10,ry:10;
+    classDef jobs fill:#ff6b6b,stroke:#e85a5a,color:#fff,rx:10,ry:10;
+
+    class A1,A2,A3,A4,A5 client
+    class B1,B2,B3,B4,B5 api
+    class C1,C2,C3,C4 auth
+    class D1,D2,D3,D4 data
+    class E1,E2 jobs
+    class E1,E2 jobs
 ```
 
 ---
